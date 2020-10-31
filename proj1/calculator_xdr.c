@@ -15,3 +15,15 @@ xdr_custom_string (XDR *xdrs, custom_string *objp)
 		 return FALSE;
 	return TRUE;
 }
+
+bool_t
+xdr_custom_response (XDR *xdrs, custom_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->result))
+		 return FALSE;
+	 if (!xdr_int (xdrs, &objp->is_valid))
+		 return FALSE;
+	return TRUE;
+}

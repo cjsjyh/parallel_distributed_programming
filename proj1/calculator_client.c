@@ -11,7 +11,7 @@ void
 cal_prog_1(char *host)
 {
 	CLIENT *clnt;
-	int  *result_1;
+	custom_response  *result_1;
 	custom_string  calculate_1_arg;
 
   /* Custom Code */
@@ -30,10 +30,13 @@ cal_prog_1(char *host)
 #endif	/* DEBUG */
 
 	result_1 = calculate_1(&calculate_1_arg, clnt);
-	if (result_1 == (int *) NULL) {
+	if (result_1 == (custom_response *) NULL) {
 		clnt_perror (clnt, "call failed");
 	}
-  printf("The answer is %d\n", *result_1);
+  if (result_1->is_valid == TRUE)
+    printf("The answer is %d\n", result_1->result);
+  else
+    printf("Invalid operation\n");
 #ifndef	DEBUG
 	clnt_destroy (clnt);
 #endif	 /* DEBUG */

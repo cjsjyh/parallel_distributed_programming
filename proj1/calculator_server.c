@@ -3,10 +3,11 @@
  * These are only templates and you can use them
  * as a guideline for developing your own functions.
  */
-
 #include <string.h>
 #include "calculator.h"
 
+//#define TRUE 1
+//#define FALSE 0
 enum OPERATOR {
   PLUS = 0,
   MINUS,
@@ -17,75 +18,96 @@ enum OPERATOR {
 #define MAX_PRIORITY 2
 int priority[] = {2, 2, 1, 1, 0};
 
-void string_parse(char* str, int nums[], int* num_cnt, enum OPERATOR ops[], int* op_cnt);
+int string_parse(char* str, int nums[], int* num_cnt, enum OPERATOR ops[], int* op_cnt);
 int calculate(int nums[], int *num_cnt, enum OPERATOR ops[], int *op_cnt);
 void pull_array(void* arr, int* count, int index, int type);
 int custom_pow(int, int);
 void printArray(int*, int);
 
-int *
+custom_response *
 calculate_1_svc(custom_string *argp, struct svc_req *rqstp)
 {
-	static int  result;
-  int nums[100], num_cnt, op_cnt;
+	static custom_response  result;
+  int nums[100], num_cnt, op_cnt, is_valid;
   enum OPERATOR ops[100];
-	/*
-	 * insert server code here
-	 */
-  string_parse(argp->str.str_val, nums, &num_cnt, ops, &op_cnt);
-  result = calculate(nums, &num_cnt, ops, &op_cnt);
 
-  printf("Result: %d\n", result);
+  result.is_valid = 1;
+  is_valid = string_parse(argp->str.str_val, nums, &num_cnt, ops, &op_cnt);
+  // 1. number of operators and numbers doesn't match
+  // 2. operators came in a row
+  // 3. ended with a operator
+  if(num_cnt != op_cnt + 1 || is_valid == FALSE){
+    printf("Invalid operation\n");
+    result.is_valid = 0;
+    return &result;
+  }
+  result.result = calculate(nums, &num_cnt, ops, &op_cnt);
+
+  printf("Result: %d\n", result.result);
+
 
 	return &result;
 }
 
-void string_parse(char* str, int nums[], int* num_cnt, enum OPERATOR ops[], int* op_cnt){
+int string_parse(char* str, int nums[], int* num_cnt, enum OPERATOR ops[], int* op_cnt){
   char temp[100];
-  int last_op = -1;
+  int last_op = -1, is_pow=FALSE, is_op=FALSE;
   *num_cnt = *op_cnt = 0;
 
   for(int i=0; i<strlen(str); i++){
+    is_op = FALSE;
     switch (str[i]){
       case '+':
-        strncpy(temp, &(str[last_op+1]), i-last_op-1);
-        temp[i-last_op-1] = '\0';
-        nums[(*num_cnt)++] = atoi(temp);
+        is_op = TRUE;
+        is_pow = FALSE;
         ops[(*op_cnt)++] = PLUS;
-        last_op = i;
         break;
       case '-':
-        strncpy(temp, &(str[last_op+1]), i-last_op-1);
-        temp[i-last_op-1] = '\0';
-        nums[(*num_cnt)++] = atoi(temp);
+        is_op = TRUE;
+        is_pow = FALSE;
         ops[(*op_cnt)++] = MINUS;
-        last_op = i;
         break;
       case '/':
-        strncpy(temp, &(str[last_op+1]), i-last_op-1);
-        temp[i-last_op-1] = '\0';
-        nums[(*num_cnt)++] = atoi(temp);
+        is_op = TRUE;
+        is_pow = FALSE;
         ops[(*op_cnt)++] = DIV;
-        last_op = i;
         break;
       case '*':
-        strncpy(temp, &(str[last_op+1]), i-last_op-1);
-        temp[i-last_op-1] = '\0';
-        nums[(*num_cnt)++] = atoi(temp);
+        is_op = TRUE;
+        // power
         if(i+1 < strlen(str) && str[i+1] == '*'){
+          is_pow = TRUE;
           ops[(*op_cnt)++] = POW;
           i++;
         }
+        // multiplication
         else {
+          is_pow = FALSE;
           ops[(*op_cnt)++] = MULT;
         }
-        last_op = i;
         break;
+    }
+    if(is_op){
+      // operators came together
+      if (i - last_op == 1)
+        return FALSE;
+      // operators came together before power
+      else if(i - last_op == 2 && is_pow == TRUE)
+        return FALSE;
+      // operation ended with an operator
+      else if(i == strlen(str)-1)
+        return FALSE;
+      strncpy(temp, &(str[last_op+1]), i-last_op-1);
+      temp[i-last_op-1] = '\0';
+      nums[(*num_cnt)++] = atoi(temp);
+      last_op = i;
     }
   }
   strncpy(temp, &(str[last_op+1]), strlen(str)-last_op-1);
   temp[strlen(str)-last_op-1] = '\0';
   nums[(*num_cnt)++] = atoi(temp);
+
+  return TRUE;
 }
 
 int calculate(int nums[], int *num_cnt, enum OPERATOR ops[], int *op_cnt){

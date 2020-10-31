@@ -22,19 +22,25 @@ struct custom_string {
 };
 typedef struct custom_string custom_string;
 
+struct custom_response {
+	int result;
+	int is_valid;
+};
+typedef struct custom_response custom_response;
+
 #define CAL_PROG 0x31111111
 #define CAL_VERS 1
 
 #if defined(__STDC__) || defined(__cplusplus)
 #define CALCULATE 1
-extern  int * calculate_1(custom_string *, CLIENT *);
-extern  int * calculate_1_svc(custom_string *, struct svc_req *);
+extern  custom_response * calculate_1(custom_string *, CLIENT *);
+extern  custom_response * calculate_1_svc(custom_string *, struct svc_req *);
 extern int cal_prog_1_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
 
 #else /* K&R C */
 #define CALCULATE 1
-extern  int * calculate_1();
-extern  int * calculate_1_svc();
+extern  custom_response * calculate_1();
+extern  custom_response * calculate_1_svc();
 extern int cal_prog_1_freeresult ();
 #endif /* K&R C */
 
@@ -42,9 +48,11 @@ extern int cal_prog_1_freeresult ();
 
 #if defined(__STDC__) || defined(__cplusplus)
 extern  bool_t xdr_custom_string (XDR *, custom_string*);
+extern  bool_t xdr_custom_response (XDR *, custom_response*);
 
 #else /* K&R C */
 extern bool_t xdr_custom_string ();
+extern bool_t xdr_custom_response ();
 
 #endif /* K&R C */
 

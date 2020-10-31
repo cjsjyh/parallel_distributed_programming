@@ -9,6 +9,8 @@ mpiexec -np 9 -mca btl ^openib -hostfile hosts ./2_b
 
 ## Question 4
 ```
+rpcgen –C –a calculator.x
+
 make -f Makefile.calculator
 
 //Run server code (on cspro2)
