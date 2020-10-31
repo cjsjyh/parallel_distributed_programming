@@ -13,6 +13,8 @@ typedef struct PPMImage {
 } PPMImage;
 
 void flipImage(PPMImage* img);
+void RGBtoGray(PPMImage* img);
+void smooth(PPMImage* img);
 
 PPMImage* ImageRead(char *filename);
 void ImageWrite(PPMImage *image, char *filename);
@@ -28,8 +30,10 @@ int main(int argc, char *argv[]) {
   // MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  PPMImage* img = ImageRead("./large/cayuga_1.ppm");
+  PPMImage* img = ImageRead("./small/boxes_1.ppm");
   flipImage(img);
+  RGBtoGray(img);
+  smooth(img);
   ImageWrite(img, "test2.ppm");
 
   //MPI_Finalize();
@@ -40,7 +44,6 @@ void flipImage(PPMImage* img){
   unsigned char temp;
   int width = img->width;
   int height = img->height;
-  printf("HEIGHT: %d WIDTH: %d\n", img->height, img->width);
   for(int i=0; i<height; i++){
     for(int j=0; j<(width)/2; j++){
       for(int k=0; k<3; k++){
@@ -50,6 +53,65 @@ void flipImage(PPMImage* img){
       }
     }
   }
+}
+
+void RGBtoGray(PPMImage* img){
+  unsigned char temp;
+  int width = img->width;
+  int height = img->height;
+  for(int i=0; i<height; i++){
+    for(int j=0; j<width; j++){
+      int index = i*width*3 + j*3;
+      temp = (img->pixels[index] + img->pixels[index+1] + img->pixels[index+2])/3;
+      for(int k=0; k<3; k++)
+        img->pixels[i*width*3 + j*3+k] = temp;
+    }
+  }
+}
+
+void smooth(PPMImage* img){
+  unsigned char *temp_pixels;
+  int temp = 0;
+  int width = img->width;
+  int height = img->height;
+  temp_pixels = (unsigned char*)malloc(sizeof(unsigned char)*width*height*3);
+
+  for(int i=0; i<height; i++){
+    for(int j=0; j<width; j++){
+      temp = 0;
+      /* Calculate Pixels around */
+      int index = i*width*3 + j*3;
+      if(i != 0){
+        if(j != 0)
+          temp += img->pixels[index - width*3-3];
+        temp += img->pixels[index - width*3];
+        if(j != width-1)
+          temp += img->pixels[index - width*3+3];
+      }
+      
+      if(j != 0)
+        temp = temp +(img->pixels[index-3]);
+      temp = temp + (img->pixels[index]);
+      if(j != width-1)
+        temp = temp + (img->pixels[index+3]);
+
+      if(i != height-1){
+        if(j != 0)
+          temp += img->pixels[index + width*3-3];
+        temp += img->pixels[index + width*3];
+        if(j != width-1)
+          temp += img->pixels[index + width*3+3];
+      }
+
+      temp /= 9;
+      for(int k=0; k<3; k++)
+        temp_pixels[index +k] = temp % 256;
+    }
+  }
+
+  for(int i=0; i<height; i++)
+    for(int j=0; j<width*3; j++)
+      img->pixels[i*width*3 + j] = temp_pixels[i*width*3 + j];
 }
 
 PPMImage *
