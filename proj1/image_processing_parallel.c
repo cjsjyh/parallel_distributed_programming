@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-//#include <mpi.h>
+#include <mpi.h>
 
 #define TRUE 1
 #define FALSE 0
 
 typedef struct PPMImage {
-  char M, N;
-  int max, width, height;
+  int width, height;
   unsigned char *pixels;
 } PPMImage;
 
@@ -23,20 +22,85 @@ static void die(char*);
 static void readPPMHeader(FILE*, int*, int*);
 
 int main(int argc, char *argv[]) {
-  // int numprocs, rank, namelen;
-  // char processor_name[MPI_MAX_PROCESSOR_NAME];
+  int numprocs, rank, namelen;
+  char processor_name[MPI_MAX_PROCESSOR_NAME];
 
-  // MPI_Init(&argc, &argv);
-  // MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  PPMImage* img = ImageRead("./small/sign_1.ppm");
-  flipImage(img);
-  RGBtoGray(img);
-  smooth(img);
-  ImageWrite(img, "test3.ppm");
+  // Initialize
+  MPI_Status status;
+  MPI_Datatype cut_pixels;
 
-  //MPI_Finalize();
+  int height, width;
+  PPMImage* img;
+  PPMImage** cut_images = (PPMImage**)malloc(sizeof(PPMImage*)*numprocs);
+  
+
+  // root process
+  if(rank == 0){
+    // Read image
+    img = ImageRead("./small/sign_1.ppm");
+    // Declare MPI contiguous data type
+    height = img->height / numprocs;
+    width = img->width;
+    MPI_Type_contiguous(height *width*3, MPI_UNSIGNED_CHAR, &cut_pixels);
+    MPI_Type_commit(&cut_pixels);
+
+    // Send cut images and metadata
+    for(int i=1; i<numprocs; i++){
+      MPI_Send(&height, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+      MPI_Send(&width, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+      MPI_Send(&(img->pixels[height*(i-1)*width*3]),1, cut_pixels, i, 0, MPI_COMM_WORLD);
+    }
+
+    // Prepare receive buffers
+    for(int i=0; i<numprocs-1; i++) {
+      cut_images[i] = (PPMImage*)malloc(sizeof(PPMImage));
+      cut_images[i]->width  = width;
+      cut_images[i]->height = height;
+      cut_images[i]->pixels = (unsigned char*) malloc(width * height * 3);
+    }
+
+    // Copy last cut image
+    cut_images[numprocs-1] = (PPMImage*)malloc(sizeof(PPMImage));
+    cut_images[numprocs-1]->width = width;
+    cut_images[numprocs-1]->height = (img->height) - height * (numprocs-1);
+    cut_images[numprocs-1]->pixels = (unsigned char*)malloc((img->height)*width*3 - (numprocs-1)*height*width*3);
+    for(int i=0; i<(img->height)*width*3 - (numprocs-1)*height*width*3; i++)
+      cut_images[numprocs-1]->pixels[i] = img->pixels[(numprocs-1)*height*width*3 + i];
+    flipImage(cut_images[numprocs-1]);
+    RGBtoGray(cut_images[numprocs-1]);
+    smooth(cut_images[numprocs-1]);
+
+    char temp_name[10] = "test_3.ppm";
+    ImageWrite(cut_images[numprocs-1], temp_name);
+  }
+  // other processes
+  else {
+    MPI_Recv(&height, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+    MPI_Recv(&width, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+
+    img = (PPMImage *) malloc(sizeof(PPMImage));
+    img->width  = width;
+    img->height = height;
+    img->pixels   = (unsigned char*) malloc(width * height * 3);
+    MPI_Type_contiguous(height *width*3, MPI_UNSIGNED_CHAR, &cut_pixels);
+    MPI_Type_commit(&cut_pixels);
+
+    MPI_Recv(img->pixels, 1, cut_pixels, 0, 0, MPI_COMM_WORLD, &status);
+    
+    flipImage(img);
+    RGBtoGray(img);
+    smooth(img);
+    
+    char temp_name[10] = "test_0.ppm";
+    temp_name[5] = rank + '0';
+    ImageWrite(img, temp_name);
+  }
+
+  MPI_Finalize();
 }
 
 
