@@ -7,6 +7,17 @@ mpicc 2_non_blocking.c -o 2_b -lm
 mpiexec -np 9 -mca btl ^openib -hostfile hosts ./2_b
 ```
 
+## Question 3
+```
+// Run serial program
+gcc image_processing_serial.c
+./a.out
+
+// Run parallel program
+mpicc image_processing_parallel.c -o img_prc
+mpiexec -np 3 -mca btl ^openib -hostfile hosts ./img_prc
+```
+
 ## Question 4
 ```
 rpcgen –C –a calculator.x
