@@ -7,6 +7,10 @@ mpicc 2_non_blocking.c -o 2_b -lm
 mpiexec -np 9 -mca btl ^openib -hostfile hosts ./2_b
 ```
 
+To change problem size:
+line7:2_blocking.c
+line7:2_non_blocking.c
+
 ## Question 3
 ```
 // Run serial program
@@ -17,6 +21,13 @@ mpiexec -np 1 -mca btl ^openib -hostfile hosts ./img_prc
 mpicc image_processing_parallel.c -o img_prc
 mpiexec -np 3 -mca btl ^openib -hostfile hosts ./img_prc
 ```
+To change image file: 
+line47:image_processing_parallel.c
+line30:image_processing_serial.c
+
+To change output filename:
+line106:image_processing_parallel.c
+line37:image_processing_serial.c
 
 ## Question 4
 ```
