@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-//#include <mpi.h>
+#include <mpi.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -23,20 +23,18 @@ static void die(char*);
 static void readPPMHeader(FILE*, int*, int*);
 
 int main(int argc, char *argv[]) {
-  // int numprocs, rank, namelen;
-  // char processor_name[MPI_MAX_PROCESSOR_NAME];
+  double start, finish;
 
-  // MPI_Init(&argc, &argv);
-  // MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  start = MPI_Wtime();
 
-  PPMImage* img = ImageRead("./small/sign_1.ppm");
+  PPMImage* img = ImageRead("./small/boxes_1.ppm");
   flipImage(img);
   RGBtoGray(img);
   smooth(img);
   ImageWrite(img, "test3.ppm");
 
-  //MPI_Finalize();
+  finish = MPI_Wtime();
+  printf("[Sequential] Elapsed time: %e seconds\n", finish-start);
 }
 
 

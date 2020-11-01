@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <time.h>
 #include <mpi.h>
@@ -12,15 +13,39 @@ void printArray(int*);
 int main(int argc, char *argv[]) {
   int numprocs, rank, namelen;
   char processor_name[MPI_MAX_PROCESSOR_NAME];
+  double start, finish;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  //int x[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  int x[PROBLEM_SIZE] = { 1,1,1,1,1,1,1,1,1,1 };
+  int x[PROBLEM_SIZE] = {0, };
   int y[PROBLEM_SIZE] = {0, };
   int n = PROBLEM_SIZE;
+  
+  if(rank == 0) start = MPI_Wtime();
+
+  // Generate, send receive random numbers
+  MPI_Datatype int_arr;
+  MPI_Status status;
+  if (rank == 0){
+    MPI_Type_contiguous(n, MPI_INT, &int_arr);
+    MPI_Type_commit(&int_arr);
+    srand((unsigned int)time(NULL));
+    for(int i=0; i<PROBLEM_SIZE; i++)
+      x[i] = rand() % 100;
+
+    for(int i=1; i<numprocs; i++){
+      MPI_Send(&n, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+      MPI_Send(x, 1, int_arr, i, 0, MPI_COMM_WORLD);
+    }
+  }
+  else {
+    MPI_Recv(&n, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+    MPI_Type_contiguous(n, MPI_INT, &int_arr);
+    MPI_Type_commit(&int_arr);
+    MPI_Recv(x, 1, int_arr, 0, 0, MPI_COMM_WORLD, &status);
+  }
 
   
   int startIndex, endIndex;
@@ -45,8 +70,21 @@ int main(int argc, char *argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
   }
-  printf("[Final Blocking %d] ", rank);
-  printArray(x);
+
+  if(rank == 0){
+    //printArray(x);
+    finish = MPI_Wtime();
+    printf("[Blocking] Elapsed time: %e seconds\n", finish-start);
+  }
+
+  if(rank == 0){
+    start = MPI_Wtime();
+    MPI_Scan(x, y, PROBLEM_SIZE, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    //printArray(y);
+    finish = MPI_Wtime();
+    printf("[MPI_Scan] Elapsed time: %e seconds\n", finish-start);
+  }
+
 
   MPI_Finalize();
 }

@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 #include <time.h>
 #include <mpi.h>
 
-#define PROBLEM_SIZE 10
+#define PROBLEM_SIZE 1000
 
 void synchronize(int , int , int* , int* , int );
 void updateBuffer(int* , int , int* , int , int , int );
@@ -12,15 +13,43 @@ void printArray(int*);
 int main(int argc, char *argv[]) {
   int numprocs, rank, namelen;
   char processor_name[MPI_MAX_PROCESSOR_NAME];
+  double start, finish;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  int x[PROBLEM_SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  //int x[PROBLEM_SIZE] = { 1,1,1,1,1,1,1,1,1,1 };
+  int x[PROBLEM_SIZE] = {0, };
   int y[PROBLEM_SIZE] = {0, };
   int n = PROBLEM_SIZE;
+
+  if(rank == 0) start = MPI_Wtime();
+
+  // Generate, send receive random numbers
+  MPI_Datatype int_arr;
+  MPI_Status status[2];
+  MPI_Request reqs[2];
+  if (rank == 0){
+    MPI_Type_contiguous(n, MPI_INT, &int_arr);
+    MPI_Type_commit(&int_arr);
+    srand((unsigned int)time(NULL));
+    for(int i=0; i<PROBLEM_SIZE; i++)
+      x[i] = rand() % 100;
+
+    for(int i=1; i<numprocs; i++){
+      MPI_Isend(&n, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &reqs[0]);
+      MPI_Isend(x, 1, int_arr, i, 0, MPI_COMM_WORLD, &reqs[1]);
+      MPI_Waitall(2, reqs, status);
+    }
+  }
+  else {
+    MPI_Irecv(&n, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &reqs[0]);
+    MPI_Waitall(1, reqs, status);
+    MPI_Type_contiguous(n, MPI_INT, &int_arr);
+    MPI_Type_commit(&int_arr);
+    MPI_Irecv(x, 1, int_arr, 0, 0, MPI_COMM_WORLD, &reqs[0]);
+    MPI_Waitall(1, reqs, status);
+  }
   
   int startIndex, endIndex;
   startIndex = n/numprocs * rank;
@@ -44,8 +73,12 @@ int main(int argc, char *argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
   }
-  printf("[Final Non-block %d] ", rank);
-  printArray(x);
+
+  if(rank == 0){
+    //printArray(x);
+    finish = MPI_Wtime();
+    printf("[Non-Block] Elapsed time: %e seconds\n", finish-start);
+  }
 
   MPI_Finalize();
 }

@@ -10,8 +10,8 @@ mpiexec -np 9 -mca btl ^openib -hostfile hosts ./2_b
 ## Question 3
 ```
 // Run serial program
-gcc image_processing_serial.c
-./a.out
+mpicc image_processing_serial.c -o img_prc
+mpiexec -np 1 -mca btl ^openib -hostfile hosts ./img_prc
 
 // Run parallel program
 mpicc image_processing_parallel.c -o img_prc
