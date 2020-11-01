@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   if(rank == 0){
     start = MPI_Wtime();
     // Read image
-    img = ImageRead("./large/cayuga_1.ppm");
+    img = ImageRead("./sign_1.ppm");
     // Declare MPI contiguous data type
     height = img->height / numprocs;
     width = img->width;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     }
     smooth(img,1,1,rank);
     
-    ImageWrite(img, "final.ppm");
+    ImageWrite(img, "parallel_result.ppm");
 
     finish = MPI_Wtime();
     printf("[Parallel] Elapsed time: %e seconds\n", finish-start);

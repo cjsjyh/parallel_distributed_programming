@@ -12,6 +12,7 @@ line7:2_blocking.c
 line7:2_non_blocking.c
 
 ## Question 3
+included `boxes_1.pem` and `sign_1.pem` for testing.
 ```
 // Run serial program
 mpicc image_processing_serial.c -o img_prc
@@ -31,8 +32,6 @@ line37:image_processing_serial.c
 
 ## Question 4
 ```
-rpcgen –C –a calculator.x
-
 make -f Makefile.calculator
 
 //Run server code (on cspro2)

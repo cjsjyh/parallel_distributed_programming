@@ -27,11 +27,11 @@ int main(int argc, char *argv[]) {
 
   start = MPI_Wtime();
 
-  PPMImage* img = ImageRead("./small/boxes_1.ppm");
+  PPMImage* img = ImageRead("./boxes_1.ppm");
   flipImage(img);
   RGBtoGray(img);
   smooth(img);
-  ImageWrite(img, "test3.ppm");
+  ImageWrite(img, "serial_result.ppm");
 
   finish = MPI_Wtime();
   printf("[Sequential] Elapsed time: %e seconds\n", finish-start);
