@@ -1,0 +1,5 @@
+1
+Daum.html
+so.html
+NAVER.html
+test.txt
